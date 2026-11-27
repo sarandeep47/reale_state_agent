@@ -67,7 +67,7 @@ src/
   pages/          HomePage, LoginPage, AuthCallbackPage, AccountPendingPage, NotFoundPage,
                   customer/PropertiesPage, owner/DashboardPage
   styles/         tokens.css, global.css
-public/_redirects SPA fallback for Cloudflare Pages (used at deployment)
+wrangler.jsonc    Cloudflare Workers static assets + SPA fallback (not_found_handling)
 supabase/verify_profiles_rls.sql  read-only RLS checks
 ```
 
