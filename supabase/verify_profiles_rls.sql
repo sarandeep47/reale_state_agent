@@ -45,3 +45,33 @@ order by schema, table_name, trigger_name;
 select conname, pg_get_constraintdef(oid) as definition
 from pg_constraint
 where conrelid = 'public.profiles'::regclass and contype = 'c';
+
+-- 7) Triggers on public.profiles and auth.users, read directly from pg_trigger.
+--    Unlike information_schema.triggers (query 5), this also lists triggers on
+--    tables the current user does not own, such as auth.users on Supabase.
+--    Look for: a sign-up trigger on auth.users that creates the profile row (then
+--    check which role its function assigns), and any guard trigger on profiles.
+--    Internal (system-generated) triggers, e.g. for foreign keys, are excluded.
+select tn.nspname                as table_schema,
+       c.relname                 as table_name,
+       t.tgname                  as trigger_name,
+       case t.tgenabled
+         when 'O' then 'enabled'
+         when 'D' then 'disabled'
+         when 'R' then 'replica only'
+         when 'A' then 'always'
+         else t.tgenabled::text
+       end                       as trigger_enabled,
+       t.tgisinternal            as is_internal,
+       pn.nspname                as trigger_function_schema,
+       p.proname                 as trigger_function_name,
+       pg_get_triggerdef(t.oid)  as trigger_definition
+from pg_trigger t
+join pg_class c       on c.oid = t.tgrelid
+join pg_namespace tn  on tn.oid = c.relnamespace
+join pg_proc p        on p.oid = t.tgfoid
+join pg_namespace pn  on pn.oid = p.pronamespace
+where not t.tgisinternal
+  and ((tn.nspname = 'public' and c.relname = 'profiles')
+    or (tn.nspname = 'auth'   and c.relname = 'users'))
+order by table_schema, table_name, trigger_name;
